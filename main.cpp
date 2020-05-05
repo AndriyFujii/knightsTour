@@ -1,70 +1,59 @@
 #include <iostream>
 #include <stack>
+#include <vector>
+#include <queue>
 #include "main.h"
 
 using namespace std;
 
-#define TAM 8
+#define SIZE 8
 #define BLACK        0
 #define WHITE        7
 #define GRAY         8
 #define BRIGHTWHITE  15
 
-struct chessBoard 
+int xyToPos(int x, int y)
 {
-    int visited, path;
-};
+    int pos = y * SIZE + x;
 
-struct boardPos
-{
-    int x, y;
-};
-
-void fillBoard(chessBoard board[TAM][TAM])
-{
-    for(int i = 0; i < 8; i++)
-    {
-        for(int j = 0; j < 8; j++)
-        {
-            board[i][j].visited = 0;
-            board[i][j].path = -1;
-        }
-    }
+    return pos;
 }
 
-void showBoards(chessBoard board[TAM][TAM])
+//Returns true if the position is in the vector
+bool find(vector<int> vector, int x)
 {
-    int cont = 0;
-    for(int i = 0; i < 8; i++)
+    for(int i = 0; i < vector.size(); i++)
+        if(vector[i] == x)
+            return true;
+    return false;
+}
+
+void showBoard(vector<int> path)
+{
+    int count = 0;
+    for(int i = 0; i < SIZE; i++)
     {
-        for(int j = 0; j < 8; j++)
+        for(int j = 0; j < SIZE; j++)
         {
-            if(cont % 2 == 0)
+            int aux = xyToPos(j, i);
+            if(count % 2 == 0)
                 textcolor(BLACK, WHITE);
             else
                 textcolor(WHITE, BLACK);
-            if(board[i][j].visited)
+
+            if(!find(path, aux))
                 cout << ' ' << ' ' << ' ';
             else
-                cout << ' ' << board[i][j].visited << ' ';
-            cont++;
-        }
-        textcolor(WHITE, BLACK);
-        cout << "\t\t";
-        for(int j = 0; j < 8; j++)
-        {
-            if(cont % 2 == 0)
-                textcolor(BLACK, WHITE);
-            else
-                textcolor(WHITE, BLACK);
-            if(board[i][j].path < 0)
-                cout << ' ' << ' ' << ' ';
-            else
-                cout << ' ' << board[i][j].path << ' ';
-            cont++;
+            {
+                if(aux < 10)
+                    cout << ' ' << aux << ' ';
+                else
+                    cout << ' ' << aux;
+            }
+            count++;
         }
         cout << '\n';
-        cont++;
+        //count++;
     }
     textcolor(WHITE, BLACK);
 }
@@ -72,70 +61,110 @@ void showBoards(chessBoard board[TAM][TAM])
 //Checks whether the move ends up inside or outside the board
 bool validMove(int x)
 {
-    if(x < 0 || x >= TAM)
+    if(x < 0 || x >= SIZE)
         return false;
     else
         return true;
 }
 
-/*Knight can move eight different directions;
-(-1,  2), ( 1,  2)
-( 2,  1), ( 2, -1)
-(-1, -2), ( 1, -2)
-(-2,  1), (-2, -1)
-*/
-void genMoves(chessBoard board[TAM][TAM], boardPos pos, stack<boardPos> &stackPos)
+//Generates possible knight moves and returns them in possibleMoves
+vector<int> genMoves(vector<int> path, int pos)
 {
-    boardPos newPos;
-    int directions[16] = {-1, 2, 1, 2, 2, 1, 2, -1, -1, -2, 1, -2, -2, 1, -2, -1};
+    int directions[16] = {-1, 2, 1, 2, 2, 1, 2, -1, 1, -2, -1, -2, -2, -1, -2, 1};
+    int posX = pos % SIZE;
+    int posY = pos / SIZE;
+
+    vector<int> possibleMoves;
+    
     for(int i = 0; i < 8; i++)
     {
-        newPos.x = pos.x + directions[2*i];
-        newPos.y = pos.y + directions[2*i+1];
-        if(validMove(newPos.x) && validMove(newPos.y) && board[newPos.x][newPos.y].visited == 0)
+        int newPosX = posX + directions[2*i];
+        int newPosY = posY + directions[2*i+1];
+
+        int newPos = xyToPos(newPosX, newPosY);
+        //Checks if X and Y are inside the board, and if it hasn't been visited before
+        if(validMove(newPosX) && validMove(newPosY) && !find(path, newPos))
+            possibleMoves.push_back(newPos);
+    }
+
+    return possibleMoves;
+}
+
+//Criar uma função para inserir em ordem no vetor
+vector<int> prioritizeMoves(vector<int> path, vector<int> possibleMoves)
+{
+    stack<int> warnsdorffOrder;
+    for(int i = 1; i < 9; i++)
+    {
+        for(int j = 0; j < possibleMoves.size(); j++)
         {
-            stackPos.push(newPos);
+            vector<int> auxVector;
+            auxVector = genMoves(path, possibleMoves[j]);
+            if(auxVector.size() == i)
+                warnsdorffOrder.push(possibleMoves[j]);
         }
     }
-    /*newPos.x = pos.x - 1;
-    newPos.y = pos.y + 2;
-    if(validMove(newPos.x) && validMove(newPos.y) && board[newPos.x][newPos.y].visited == 0)
+
+    vector<int> prioritizedVector;
+    while(!warnsdorffOrder.empty())
     {
-        stackPos.push(newPos);
-    }*/
+        prioritizedVector.push_back(warnsdorffOrder.top());
+        warnsdorffOrder.pop();
+    }
+    return prioritizedVector;
 }
 
 
-
-void mostraPilha(stack<boardPos> s)
+void showPath(vector<int> path)
 {
-    boardPos b;
-    while (!s.empty())
+    for(int i = 0; i < path.size(); i++)
+        cout << path[i] << ' ';
+}
+
+
+//Pos is the current position, path is the visited nodes
+bool knightsTour(int pos, vector<int> &path, int depth = 0)
+{
+    bool completed;
+    path.push_back(pos);
+    if(depth < SIZE*SIZE-1)
     {
-        b.x = s.top().x;
-        b.y = s.top().y;
-        cout << b.x << ' ' << b.y <<'\n';
-        s.pop();
+        completed = false;
+
+        vector<int> possibleMoves;
+        possibleMoves = genMoves(path, pos);
+        if(possibleMoves.size()>1)
+            possibleMoves = prioritizeMoves(path, possibleMoves);
+
+        while(!possibleMoves.empty() && !completed)
+        {
+            pos = possibleMoves[possibleMoves.size()-1];
+            completed = knightsTour(pos, path, depth+1);
+            possibleMoves.pop_back();
+        }
+
+        if(!completed)
+            path.pop_back();
     }
+    else
+        completed = true;
+
+    return completed;
 }
 
 int main()
 {
-    chessBoard board[TAM][TAM];
-    stack<boardPos> stackPos;
-    boardPos pos;
-    pos.x = 2;
-    pos.y = 3;
-    
-    fillBoard(board);
+    /*cout << "Chess board" << "\t\t\t\t" << "Knight's path" << '\n';
 
-    //gotoxy(0, 0);
-    //cout << "Chess board" << "\t\t\t\t" << "Knight's path" << '\n';
-    //showBoards(board);
+    gotoxy(0, 1);
+    showBoards(board);*/
 
-    genMoves(board, pos, stackPos);
+    vector<int> path;
+    knightsTour(1, path);
 
-    mostraPilha(stackPos);
+        
+    gotoxy(0, 3);
+    showPath(path);
 
     cout << '\n';
     system("pause");
