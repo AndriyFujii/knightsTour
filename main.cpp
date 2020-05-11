@@ -122,8 +122,8 @@ int main()
         gotoxy(0, SIZE+2);
         cout << "Enter the knight's starting position (e.g. a4, d6):\n";
 
-        char posX;
-        int posY;
+        char posX, posY;
+        //int posY;
         bool exit;
         //Validates the input
         do
@@ -134,7 +134,7 @@ int main()
             posX = tolower(posX);
             exit = true;
             //Error if it's outside the chessboard range
-            if(posY < 1 || posY > 8 || posX < 'a' || posX > 'h')
+            if(posY < '1' || posY > '8' || posX < 'a' || posX > 'h')
             {
                 system("cls");
 
@@ -148,7 +148,7 @@ int main()
         
         vector<int> path;
         //Solves the tour while saving it in path
-        knightsTour(algebraicToPos(posX, posY), path);
+        knightsTour(algebraicToPos(posX, posY - '0'), path);
         
         //Prints the knight's movement step by step
         gotoxy(0, 0);
